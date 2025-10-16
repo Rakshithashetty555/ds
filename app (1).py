@@ -1,16 +1,16 @@
-# Save this as app.py
 import streamlit as st
 import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from scipy.stats import ks_2samp
+import numpy as np
 
-st.set_page_config(page_title="Responsible AI Dashboard", layout="wide")
-st.title("🤖 Responsible AI Dashboard")
-st.write("Upload your dataset, train a model, view metrics, SHAP explainability, and data drift.")
+st.set_page_config(page_title="Responsible AI Dashboard (Regression)", layout="wide")
+st.title("🤖 Regression Dashboard")
+st.write("Upload dataset, train a regression model, view metrics, SHAP explainability, and data drift.")
 
 # -------------------------------
 # Step 1: Upload CSV
@@ -20,8 +20,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.write("✅ Dataset preview:")
     st.dataframe(df.head())
-    
-    # Clean column names
+
     df.columns = df.columns.str.strip()
     
     # -------------------------------
@@ -40,33 +39,31 @@ if uploaded_file is not None:
     # -------------------------------
     # Step 4: Train/Test split
     # -------------------------------
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
-    # Align X_test to X_train columns (prevents SHAP errors)
+    # Align columns
     X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
     
     # -------------------------------
-    # Step 5: Train RandomForest model
+    # Step 5: Train RandomForest Regressor
     # -------------------------------
-    model = RandomForestClassifier(random_state=42)
+    model = RandomForestRegressor(random_state=42)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
     
     # -------------------------------
-    # Step 6: Model Metrics
+    # Step 6: Regression Metrics
     # -------------------------------
     st.subheader("📊 Model Metrics")
-    st.metric("Accuracy", f"{accuracy_score(y_test, preds):.2f}")
-    st.text("Classification Report:")
-    st.text(classification_report(y_test, preds))
+    st.metric("R² Score", f"{r2_score(y_test, preds):.2f}")
+    st.metric("RMSE", f"{np.sqrt(mean_squared_error(y_test, preds)):.2f}")
+    st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
     
     # -------------------------------
     # Step 7: SHAP Explainability
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
-    explainer = shap.TreeExplainer(model, check_additivity=False)
+    explainer = shap.TreeExplainer(model, feature_perturbation="interventional")
     shap_values = explainer.shap_values(X_test)
     
     fig, ax = plt.subplots()
