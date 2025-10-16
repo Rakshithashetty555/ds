@@ -11,7 +11,7 @@ from scipy.stats import ks_2samp
 
 st.set_page_config(page_title="Rating Regression Dashboard", layout="wide")
 st.title("🤖 Rating Regression Dashboard")
-st.write("Upload dataset, predict ratings, view metrics, SHAP explanations, and data drift checks.")
+st.write("Upload dataset, predict ratings, view metrics, SHAP explanations (beeswarm), and data drift checks.")
 
 # -------------------------------
 # Step 1: Upload CSV
@@ -82,24 +82,24 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
 
     # -------------------------------
-    # Step 9: SHAP Explanations
+    # Step 9: SHAP Beeswarm
     # -------------------------------
-    st.subheader("🌈 SHAP Explanations")
+    st.subheader("🌈 SHAP Feature Importance (Beeswarm)")
     try:
-        # Sample for robust SHAP
         shap_sample_X = X_test.sample(min(50, len(X_test)), random_state=42)
         shap_background = X_train.sample(min(50, len(X_train)), random_state=42)
 
         explainer = shap.KernelExplainer(model.predict, shap_background)
         shap_values = explainer.shap_values(shap_sample_X, nsamples=100)
 
-        # Beeswarm Plot
-        st.write("**Beeswarm Plot (Local Feature Effects)**")
         fig, ax = plt.subplots(figsize=(8,5))
         shap.summary_plot(shap_values, shap_sample_X, plot_type="dot", show=False)
         st.pyplot(fig)
 
-     
+    except Exception as e:
+        st.warning("⚠️ SHAP could not be computed.")
+        st.write(e)
+
     # -------------------------------
     # Step 10: Data Drift Checks
     # -------------------------------
