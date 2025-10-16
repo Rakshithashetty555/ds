@@ -75,19 +75,21 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
 
     # -------------------------------
-    # Step 8: SHAP Feature Importance (Robust)
+    # Step 8: SHAP Feature Importance (Safe Sampling)
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
     try:
+        # Take a sample of 100 rows to avoid memory/complexity issues
+        shap_sample = X_test.sample(min(100, len(X_test)), random_state=42)
         explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(X_test)
+        shap_values = explainer.shap_values(shap_sample)
 
         fig, ax = plt.subplots()
-        shap.summary_plot(shap_values, X_test, plot_type="bar", show=False)
+        shap.summary_plot(shap_values, shap_sample, plot_type="bar", show=False)
         st.pyplot(fig)
 
     except Exception as e:
-        st.warning("⚠️ SHAP could not be computed due to model complexity or dataset size.")
+        st.warning("⚠️ SHAP could not be computed.")
         st.write(e)
 
     # -------------------------------
