@@ -1,16 +1,17 @@
+# Save as app.py
 import streamlit as st
 import pandas as pd
+import numpy as np
 import shap
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from scipy.stats import ks_2samp
-import numpy as np
 
-st.set_page_config(page_title="Responsible AI Dashboard (Regression)", layout="wide")
-st.title("🤖 Regression Dashboard")
-st.write("Upload dataset, train a regression model, view metrics, SHAP explainability, and data drift.")
+st.set_page_config(page_title="Rating Regression Dashboard", layout="wide")
+st.title("🤖 Rating Regression Dashboard")
+st.write("Upload dataset, train a regression model to predict ratings, view metrics, SHAP explainability, and data drift.")
 
 # -------------------------------
 # Step 1: Upload CSV
@@ -20,39 +21,49 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.write("✅ Dataset preview:")
     st.dataframe(df.head())
-
+    
+    # Clean column names
     df.columns = df.columns.str.strip()
     
     # -------------------------------
     # Step 2: Select target
     # -------------------------------
-    target = st.selectbox("🎯 Select target column", df.columns)
+    target = st.selectbox("🎯 Select target column", df.columns, index=list(df.columns).index('rating') if 'rating' in df.columns else 0)
     features = [c for c in df.columns if c != target]
     
     # -------------------------------
-    # Step 3: Encode categorical features
+    # Step 3: Encode target if needed
+    # -------------------------------
+    if not np.issubdtype(df[target].dtype, np.number):
+        st.warning(f"Target column '{target}' is not numeric. Converting to numeric.")
+        # Extract numeric values from strings like '5 stars'
+        df[target] = df[target].astype(str).str.extract('(\d+)').astype(float)
+    
+    y = df[target]
+    
+    # -------------------------------
+    # Step 4: Encode features
     # -------------------------------
     X = pd.get_dummies(df[features], drop_first=True)
-    y = df[target]
     st.info(f"Features auto-encoded. Shape: {X.shape}")
     
     # -------------------------------
-    # Step 4: Train/Test split
+    # Step 5: Train/Test split
     # -------------------------------
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
-    # Align columns
+    # Align test columns
     X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
     
     # -------------------------------
-    # Step 5: Train RandomForest Regressor
+    # Step 6: Train RandomForest Regressor
     # -------------------------------
     model = RandomForestRegressor(random_state=42)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
     
     # -------------------------------
-    # Step 6: Regression Metrics
+    # Step 7: Regression Metrics
     # -------------------------------
     st.subheader("📊 Model Metrics")
     st.metric("R² Score", f"{r2_score(y_test, preds):.2f}")
@@ -60,7 +71,7 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
     
     # -------------------------------
-    # Step 7: SHAP Explainability
+    # Step 8: SHAP Feature Importance
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
     explainer = shap.TreeExplainer(model, feature_perturbation="interventional")
@@ -71,7 +82,7 @@ if uploaded_file is not None:
     st.pyplot(fig)
     
     # -------------------------------
-    # Step 8: Data Drift (KS Test)
+    # Step 9: Data Drift (KS Test)
     # -------------------------------
     st.subheader("📉 Data Drift Check (KS Test)")
     drift_results = {}
