@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import pandas as pd
 import shap
@@ -12,9 +13,6 @@ st.set_page_config(page_title="Responsible AI Dashboard", layout="wide")
 st.title("🤖 Responsible AI Dashboard")
 st.write("Includes SHAP Explainability, Model Metrics, and Drift Checks")
 
-# -------------------------------
-# Upload CSV
-# -------------------------------
 uploaded_file = st.file_uploader("📂 Upload your dataset (CSV)", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -25,10 +23,19 @@ if uploaded_file:
     target = st.selectbox("🎯 Select target column", df.columns)
     features = [c for c in df.columns if c != target]
 
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(df[features], df[target], test_size=0.3, random_state=42)
+    # Convert categorical columns to numeric
+    df_encoded = pd.get_dummies(df, drop_first=True)
+    st.info(f"Data automatically encoded. New shape: {df_encoded.shape}")
 
-    # Train simple model
+    # Adjust features after encoding
+    new_features = [c for c in df_encoded.columns if c != target]
+    
+    # Split
+    X_train, X_test, y_train, y_test = train_test_split(
+        df_encoded[new_features], df_encoded[target], test_size=0.3, random_state=42
+    )
+
+    # Train model
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
@@ -58,7 +65,7 @@ if uploaded_file:
     # -------------------------------
     st.subheader("📉 Data Drift Check (KS Test)")
     drift_results = {}
-    for col in features:
+    for col in new_features:
         stat, p = ks_2samp(X_train[col], X_test[col])
         drift_results[col] = p
     drift_df = pd.DataFrame.from_dict(drift_results, orient="index", columns=["p_value"])
