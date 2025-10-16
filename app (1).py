@@ -99,25 +99,7 @@ if uploaded_file is not None:
         shap.summary_plot(shap_values, shap_sample_X, plot_type="dot", show=False)
         st.pyplot(fig)
 
-        # Global Feature Importance
-        st.write("**Global Feature Importance (Bar Chart)**")
-        mean_abs_shap = np.abs(shap_values).mean(axis=0)
-        feature_importance = pd.DataFrame({
-            "Feature": shap_sample_X.columns,
-            "Importance": mean_abs_shap
-        }).sort_values(by="Importance", ascending=False)
-
-        fig, ax = plt.subplots(figsize=(8,5))
-        ax.barh(feature_importance["Feature"], feature_importance["Importance"])
-        ax.invert_yaxis()
-        ax.set_xlabel("Mean |SHAP value|")
-        ax.set_title("Global Feature Importance")
-        st.pyplot(fig)
-
-    except Exception as e:
-        st.warning("⚠️ SHAP could not be computed.")
-        st.write(e)
-
+     
     # -------------------------------
     # Step 10: Data Drift Checks
     # -------------------------------
