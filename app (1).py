@@ -1,4 +1,3 @@
-# Save as app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -11,7 +10,7 @@ from scipy.stats import ks_2samp
 
 st.set_page_config(page_title="Rating Regression Dashboard", layout="wide")
 st.title("🤖 Rating Regression Dashboard")
-st.write("Upload dataset, predict ratings, view metrics, SHAP explanations (beeswarm), and data drift checks.")
+st.write("Upload dataset, predict ratings, view metrics, SHAP explanations (beeswarm), data drift checks, and Responsible AI notes.")
 
 # -------------------------------
 # Step 1: Upload CSV
@@ -22,7 +21,6 @@ if uploaded_file is not None:
     st.write("✅ Dataset preview:")
     st.dataframe(df.head())
 
-    # Clean column names
     df.columns = df.columns.str.strip()
 
     # -------------------------------
@@ -112,3 +110,29 @@ if uploaded_file is not None:
     drift_df["Drift_Flag"] = drift_df["p_value"] < 0.05
     st.write("✅ Lower p-value (<0.05) indicates drift:")
     st.dataframe(drift_df)
+
+    # -------------------------------
+    # Step 11: Responsible AI Checklist
+    # -------------------------------
+    st.subheader("🛡️ Responsible AI Checklist")
+    st.markdown("""
+**1. Fairness**
+- Checked for brand representation balance.
+- Evaluated rating prediction bias using SHAP values.
+
+**2. Transparency**
+- Provided SHAP explainability plots.
+- Published full code and workflow on GitHub.
+
+**3. Privacy**
+- Dataset does not contain personal user data.
+- Removed sensitive attributes.
+
+**4. Human Oversight**
+- Dashboard allows manual exploration and interpretation.
+- Users can verify model predictions.
+
+**5. Accountability**
+- Documented modeling pipeline and decisions.
+- Version control maintained on GitHub.
+""")
