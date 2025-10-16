@@ -11,7 +11,7 @@ from scipy.stats import ks_2samp
 
 st.set_page_config(page_title="Rating Regression Dashboard", layout="wide")
 st.title("🤖 Rating Regression Dashboard")
-st.write("Upload dataset, train a regression model to predict ratings, view metrics, SHAP explainability (beeswarm), and data drift.")
+st.write("Upload dataset, predict ratings, view metrics, SHAP explanations, and data drift checks.")
 
 # -------------------------------
 # Step 1: Upload CSV
@@ -55,8 +55,6 @@ if uploaded_file is not None:
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=42
     )
-    
-    # Align columns
     X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
 
     # -------------------------------
@@ -67,7 +65,16 @@ if uploaded_file is not None:
     preds = model.predict(X_test)
 
     # -------------------------------
-    # Step 7: Regression Metrics
+    # Step 7: Predictions Section
+    # -------------------------------
+    st.subheader("🖥️ Predictions")
+    pred_df = X_test.copy()
+    pred_df["Actual"] = y_test
+    pred_df["Predicted"] = preds
+    st.dataframe(pred_df.head())
+
+    # -------------------------------
+    # Step 8: Metrics Section
     # -------------------------------
     st.subheader("📊 Model Metrics")
     st.metric("R² Score", f"{r2_score(y_test, preds):.2f}")
@@ -75,21 +82,36 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
 
     # -------------------------------
-    # Step 8: SHAP Feature Importance (Beeswarm)
+    # Step 9: SHAP Explanations
     # -------------------------------
-    st.subheader("🌈 SHAP Feature Importance (Beeswarm)")
+    st.subheader("🌈 SHAP Explanations")
     try:
-        # Sample data for safe SHAP computation
+        # Sample for robust SHAP
         shap_sample_X = X_test.sample(min(50, len(X_test)), random_state=42)
         shap_background = X_train.sample(min(50, len(X_train)), random_state=42)
 
-        # KernelExplainer works for any model
         explainer = shap.KernelExplainer(model.predict, shap_background)
         shap_values = explainer.shap_values(shap_sample_X, nsamples=100)
 
-        # Beeswarm plot
+        # Beeswarm Plot
+        st.write("**Beeswarm Plot (Local Feature Effects)**")
         fig, ax = plt.subplots(figsize=(8,5))
         shap.summary_plot(shap_values, shap_sample_X, plot_type="dot", show=False)
+        st.pyplot(fig)
+
+        # Global Feature Importance
+        st.write("**Global Feature Importance (Bar Chart)**")
+        mean_abs_shap = np.abs(shap_values).mean(axis=0)
+        feature_importance = pd.DataFrame({
+            "Feature": shap_sample_X.columns,
+            "Importance": mean_abs_shap
+        }).sort_values(by="Importance", ascending=False)
+
+        fig, ax = plt.subplots(figsize=(8,5))
+        ax.barh(feature_importance["Feature"], feature_importance["Importance"])
+        ax.invert_yaxis()
+        ax.set_xlabel("Mean |SHAP value|")
+        ax.set_title("Global Feature Importance")
         st.pyplot(fig)
 
     except Exception as e:
@@ -97,7 +119,7 @@ if uploaded_file is not None:
         st.write(e)
 
     # -------------------------------
-    # Step 9: Data Drift (KS Test)
+    # Step 10: Data Drift Checks
     # -------------------------------
     st.subheader("📉 Data Drift Check (KS Test)")
     drift_results = {}
