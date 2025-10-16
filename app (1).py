@@ -1,4 +1,4 @@
-# Save as app.py
+# Save this as app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -21,47 +21,51 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.write("✅ Dataset preview:")
     st.dataframe(df.head())
-    
+
     # Clean column names
     df.columns = df.columns.str.strip()
-    
+
     # -------------------------------
     # Step 2: Select target
     # -------------------------------
-    target = st.selectbox("🎯 Select target column", df.columns, index=list(df.columns).index('rating') if 'rating' in df.columns else 0)
+    target = st.selectbox(
+        "🎯 Select target column",
+        df.columns,
+        index=list(df.columns).index('rating') if 'rating' in df.columns else 0
+    )
     features = [c for c in df.columns if c != target]
-    
+
     # -------------------------------
-    # Step 3: Encode target if needed
+    # Step 3: Convert target to numeric if needed
     # -------------------------------
     if not np.issubdtype(df[target].dtype, np.number):
         st.warning(f"Target column '{target}' is not numeric. Converting to numeric.")
-        # Extract numeric values from strings like '5 stars'
         df[target] = df[target].astype(str).str.extract('(\d+)').astype(float)
-    
     y = df[target]
-    
+
     # -------------------------------
     # Step 4: Encode features
     # -------------------------------
     X = pd.get_dummies(df[features], drop_first=True)
     st.info(f"Features auto-encoded. Shape: {X.shape}")
-    
+
     # -------------------------------
     # Step 5: Train/Test split
     # -------------------------------
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    
-    # Align test columns
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42
+    )
+
+    # Align columns
     X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
-    
+
     # -------------------------------
     # Step 6: Train RandomForest Regressor
     # -------------------------------
     model = RandomForestRegressor(random_state=42)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
-    
+
     # -------------------------------
     # Step 7: Regression Metrics
     # -------------------------------
@@ -69,18 +73,19 @@ if uploaded_file is not None:
     st.metric("R² Score", f"{r2_score(y_test, preds):.2f}")
     st.metric("RMSE", f"{np.sqrt(mean_squared_error(y_test, preds)):.2f}")
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
-    
+
     # -------------------------------
     # Step 8: SHAP Feature Importance
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
-    explainer = shap.TreeExplainer(model, feature_perturbation="interventional")
-    shap_values = explainer.shap_values(X_test)
-    
+    # Use new robust SHAP Explainer
+    explainer = shap.Explainer(model, X_train, feature_perturbation="interventional")
+    shap_values = explainer(X_test)
+
     fig, ax = plt.subplots()
-    shap.summary_plot(shap_values, X_test, plot_type="bar", show=False)
+    shap.summary_plot(shap_values.values, X_test, plot_type="bar", show=False)
     st.pyplot(fig)
-    
+
     # -------------------------------
     # Step 9: Data Drift (KS Test)
     # -------------------------------
