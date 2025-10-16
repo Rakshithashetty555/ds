@@ -11,7 +11,7 @@ from scipy.stats import ks_2samp
 
 st.set_page_config(page_title="Rating Regression Dashboard", layout="wide")
 st.title("🤖 Rating Regression Dashboard")
-st.write("Upload dataset, train a regression model to predict ratings, view metrics, SHAP explainability, and data drift.")
+st.write("Upload dataset, train a regression model to predict ratings, view metrics, SHAP explainability (beeswarm), and data drift.")
 
 # -------------------------------
 # Step 1: Upload CSV
@@ -75,19 +75,21 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
 
     # -------------------------------
-    # Step 8: SHAP Feature Importance (KernelExplainer, robust)
+    # Step 8: SHAP Feature Importance (Beeswarm)
     # -------------------------------
-    st.subheader("🌈 SHAP Feature Importance")
+    st.subheader("🌈 SHAP Feature Importance (Beeswarm)")
     try:
-        # Use small samples to avoid memory issues
+        # Sample data for safe SHAP computation
         shap_sample_X = X_test.sample(min(50, len(X_test)), random_state=42)
         shap_background = X_train.sample(min(50, len(X_train)), random_state=42)
 
+        # KernelExplainer works for any model
         explainer = shap.KernelExplainer(model.predict, shap_background)
         shap_values = explainer.shap_values(shap_sample_X, nsamples=100)
 
-        fig, ax = plt.subplots()
-        shap.summary_plot(shap_values, shap_sample_X, plot_type="bar", show=False)
+        # Beeswarm plot
+        fig, ax = plt.subplots(figsize=(8,5))
+        shap.summary_plot(shap_values, shap_sample_X, plot_type="dot", show=False)
         st.pyplot(fig)
 
     except Exception as e:
