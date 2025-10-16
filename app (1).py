@@ -1,4 +1,4 @@
-# Save this as app.py
+# Save as app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -55,7 +55,7 @@ if uploaded_file is not None:
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=42
     )
-
+    
     # Align columns
     X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
 
@@ -75,16 +75,20 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
 
     # -------------------------------
-    # Step 8: SHAP Feature Importance
+    # Step 8: SHAP Feature Importance (Robust)
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
-    # Use new robust SHAP Explainer
-    explainer = shap.Explainer(model, X_train, feature_perturbation="interventional")
-    shap_values = explainer(X_test)
+    try:
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(X_test)
 
-    fig, ax = plt.subplots()
-    shap.summary_plot(shap_values.values, X_test, plot_type="bar", show=False)
-    st.pyplot(fig)
+        fig, ax = plt.subplots()
+        shap.summary_plot(shap_values, X_test, plot_type="bar", show=False)
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.warning("⚠️ SHAP could not be computed due to model complexity or dataset size.")
+        st.write(e)
 
     # -------------------------------
     # Step 9: Data Drift (KS Test)
