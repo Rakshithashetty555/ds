@@ -1,5 +1,4 @@
-# Save this as app.py or paste in Colab
-
+# Save this as app.py
 import streamlit as st
 import pandas as pd
 import shap
@@ -22,24 +21,35 @@ if uploaded_file is not None:
     st.write("✅ Dataset preview:")
     st.dataframe(df.head())
     
-    # Strip column names
+    # Clean column names
     df.columns = df.columns.str.strip()
     
-    # Step 2: Select target column
+    # -------------------------------
+    # Step 2: Select target
+    # -------------------------------
     target = st.selectbox("🎯 Select target column", df.columns)
     features = [c for c in df.columns if c != target]
     
-    # Step 3: Encode categorical features automatically
+    # -------------------------------
+    # Step 3: Encode categorical features
+    # -------------------------------
     X = pd.get_dummies(df[features], drop_first=True)
     y = df[target]
     st.info(f"Features auto-encoded. Shape: {X.shape}")
     
+    # -------------------------------
     # Step 4: Train/Test split
+    # -------------------------------
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=42
     )
     
+    # Align X_test to X_train columns (prevents SHAP errors)
+    X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
+    
+    # -------------------------------
     # Step 5: Train RandomForest model
+    # -------------------------------
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
@@ -56,7 +66,7 @@ if uploaded_file is not None:
     # Step 7: SHAP Explainability
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
-    explainer = shap.TreeExplainer(model)
+    explainer = shap.TreeExplainer(model, check_additivity=False)
     shap_values = explainer.shap_values(X_test)
     
     fig, ax = plt.subplots()
@@ -68,7 +78,7 @@ if uploaded_file is not None:
     # -------------------------------
     st.subheader("📉 Data Drift Check (KS Test)")
     drift_results = {}
-    for col in X.columns:
+    for col in X_train.columns:
         stat, p = ks_2samp(X_train[col], X_test[col])
         drift_results[col] = p
     drift_df = pd.DataFrame.from_dict(drift_results, orient="index", columns=["p_value"])
