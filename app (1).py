@@ -75,17 +75,19 @@ if uploaded_file is not None:
     st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
 
     # -------------------------------
-    # Step 8: SHAP Feature Importance (Safe Sampling)
+    # Step 8: SHAP Feature Importance (KernelExplainer, robust)
     # -------------------------------
     st.subheader("🌈 SHAP Feature Importance")
     try:
-        # Take a sample of 100 rows to avoid memory/complexity issues
-        shap_sample = X_test.sample(min(100, len(X_test)), random_state=42)
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(shap_sample)
+        # Use small samples to avoid memory issues
+        shap_sample_X = X_test.sample(min(50, len(X_test)), random_state=42)
+        shap_background = X_train.sample(min(50, len(X_train)), random_state=42)
+
+        explainer = shap.KernelExplainer(model.predict, shap_background)
+        shap_values = explainer.shap_values(shap_sample_X, nsamples=100)
 
         fig, ax = plt.subplots()
-        shap.summary_plot(shap_values, shap_sample, plot_type="bar", show=False)
+        shap.summary_plot(shap_values, shap_sample_X, plot_type="bar", show=False)
         st.pyplot(fig)
 
     except Exception as e:
