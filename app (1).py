@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from scipy.stats import ks_2samp
 
 st.set_page_config(page_title="Rating Regression Dashboard", layout="wide")
-st.title("🤖 Rating Regression Dashboard")
+st.title("🤖 Ajio  Dashboard and insights")
 st.write("Upload dataset, predict ratings, view metrics, SHAP explanations (beeswarm), data drift checks, and Responsible AI notes.")
 
 # -------------------------------
